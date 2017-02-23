@@ -23,3 +23,15 @@
   content: "|";
   padding-right: 0.3em;
 }
+
+.background {
+  fill: #e7e7e7;
+}
+
+.axis path,
+.axis line {
+  fill: none;
+  stroke: #0ff;
+  shape-rendering: crispEdges;
+}
+
