@@ -28,10 +28,46 @@
   fill: #e7e7e7;
 }
 
-.axis path,
-.axis line {
-  fill: none;
-  stroke: #0ff;
-  shape-rendering: crispEdges;
+body {
+  font: 10px sans-serif;
 }
 
+.grid .tick {
+  stroke: lightgrey;
+  opacity: 0.7;
+}
+.grid path {
+  stroke-width: 0;
+}
+.axis path, .axis line {
+  fill: none;
+  stroke: #000;
+  shape-rendering: crispEdges;
+}
+.x.axis path {
+  display: none;
+}
+
+.line_open {
+  fill: none;
+  stroke: blue;
+  stroke-width: 1.5px;
+}
+
+.line_high {
+  fill: none;
+  stroke: green;
+  stroke-width: 1.5px;
+}
+
+.line_low {
+  fill: none;
+  stroke: red;
+  stroke-width: 1.5px;
+}
+
+.line_close {
+  fill: none;
+  stroke: yellow;
+  stroke-width: 1.5px;
+}
