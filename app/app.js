@@ -42,58 +42,244 @@ var stockChart = angular.module('myApp', [
 ]);
 
 stockChart.controller("ChartController", function() {
-    var d3 = window.d3,
-        svg = d3.select("svg"),
-        margin = {top: 20, right: 20, bottom: 30, left: 50},
-        width = +svg.attr("width") - margin.left - margin.right,
-        height = +svg.attr("height") - margin.top - margin.bottom,
-        g = svg.append("g").attr("transform", "translate(" + margin.left + "," + margin.top + ")");
-
-    var parseTime = d3.timeParse("%Y-%m-%d");
-
-    var x = d3.scaleTime()
-        .rangeRound([0, width]);
-
-    var y = d3.scaleLinear()
-        .rangeRound([height, 0]);
-
-    var line = d3.line()
-        .x(function(d) { return x(d.date); })
-        .y(function(d) { return y(d.open); });
+    var d3 = window.d3;
 
     d3.tsv("stocks_yahoo.tsv", function(d) {
-        d.date = parseTime(d.date);
+        d.date = getTimestamp(d.date);
         d.open = +d.open;
+        d.high = +d.high;
+        d.low = +d.low;
+        d.close = +d.close;
         return d;
     }, function(error, data) {
         if (error) throw error;
 
-        x.domain(d3.extent(data, function(d) { return d.date; }));
-        y.domain(d3.extent(data, function(d) { return d.open; }));
+        var margin = {
+            top: 20,
+            right:20,
+            bottom: 40,
+            left: 145
+        };
+        var width = 800 - margin.left - margin.right;
+        var height = 400 - margin.top - margin.bottom;
 
-        g.append("g")
+        var x = d3.time.scale()
+            .domain(d3.extent(data, function (d) {
+                return d.date;
+            }))
+            .range([0, width]);
+
+        var y = d3.scale.linear()
+            .domain(d3.extent(data, function (d) {
+                return d.open;
+            }))
+            .range([height, 0]);
+
+        var chartOpen = d3.scale.linear()
+            .domain(d3.extent(data, function (d) {
+                return d.open;
+            }))
+            .range([height, 0]);
+
+        var chartHigh = d3.scale.linear()
+            .domain(d3.extent(data, function (d) {
+                return d.high;
+            }))
+            .range([height, 0]);
+
+        var chartLow = d3.scale.linear()
+            .domain(d3.extent(data, function (d) {
+                return d.low;
+            }))
+            .range([height, 0]);
+
+        var chartClose = d3.scale.linear()
+            .domain(d3.extent(data, function (d) {
+                return d.close;
+            }))
+            .range([height, 0]);
+
+        var lineO = d3.svg.line()
+            .x(function (d) { return x(d.date); })
+            .y(function (d) { return chartOpen(d.open); });
+
+        var lineH = d3.svg.line()
+            .x(function (d) { return x(d.date); })
+            .y(function (d) { return chartHigh(d.high); });
+
+        var lineL = d3.svg.line()
+            .x(function (d) { return x(d.date); })
+            .y(function (d) { return chartLow(d.low); });
+
+        var lineC = d3.svg.line()
+            .x(function (d) { return x(d.date); })
+            .y(function (d) { return chartClose(d.close); });
+
+        var zoom = d3.behavior.zoom()
+            .x(x)
+            .y(y)
+            .on("zoom", zoomed);
+
+        var svg = d3.select('#chart')
+            .append("svg:svg")
+            .attr('width', width + margin.left + margin.right)
+            .attr('height', height + margin.top + margin.bottom)
+            .call(zoom)
+            .append("svg:g")
+            .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+        var make_x_axis = function () {
+            return d3.svg.axis()
+                .scale(x)
+                .orient("bottom")
+                .ticks(5);
+        };
+
+        var make_y_axis = function () {
+            return d3.svg.axis()
+                .scale(y)
+                .orient("left")
+                .ticks(5);
+        };
+
+        var xAxis = d3.svg.axis()
+            .scale(x)
+            .orient("bottom")
+            .ticks(5);
+
+        svg.append("svg:g")
+            .attr("class", "x axis")
+            .attr("transform", "translate(0, " + height + ")")
+            .call(xAxis);
+
+        var yAxis = d3.svg.axis()
+            .scale(y)
+            .orient("left")
+            .ticks(5);
+
+        svg.append("g")
+            .attr("class", "y axis")
+            .call(yAxis);
+
+        svg.append("g")
+            .attr("class", "x grid")
             .attr("transform", "translate(0," + height + ")")
-            .call(d3.axisBottom(x))
-            .select(".domain")
-            .remove();
+            .call(make_x_axis()
+                .tickSize(-height, 0, 0)
+                .tickFormat(""));
 
-        g.append("g")
-            .call(d3.axisLeft(y))
-            .append("text")
-            .attr("fill", "#000")
-            .attr("transform", "rotate(-90)")
-            .attr("y", 6)
-            .attr("dy", "0.71em")
-            .attr("text-anchor", "end")
-            .text("Price ($)");
+        svg.append("g")
+            .attr("class", "y grid")
+            .call(make_y_axis()
+                .tickSize(-width, 0, 0)
+                .tickFormat(""));
 
-        g.append("path")
+        svg.append("text")
+            .attr("x", -100)
+            .attr("y", margin.top)
+            .attr("class", "legend")
+            .style("stroke", '#337ab7')
+            .on("click", function(){
+                var lineStyle = document.getElementById('line_open').style;
+                lineStyle.display = lineStyle.display == 'none' ? 'inline' : 'none';
+            })
+            .text('Open');
+
+        svg.append("text")
+            .attr("x", -100)
+            .attr("y", margin.top + 15)
+            .attr("class", "legend")
+            .style("stroke", '#5cb85c')
+            .on("click", function(){
+                var lineStyle = document.getElementById('line_high').style;
+                lineStyle.display = lineStyle.display == 'none' ? 'inline' : 'none';
+            })
+            .text('High');
+
+        svg.append("text")
+            .attr("x", -100)
+            .attr("y", margin.top + 30)
+            .attr("class", "legend")
+            .style("stroke", '#d9534f')
+            .on("click", function(){
+                var lineStyle = document.getElementById('line_low').style;
+                lineStyle.display = lineStyle.display == 'none' ? 'inline' : 'none';
+            })
+            .text('Low');
+
+        svg.append("text")
+            .attr("x", -100)
+            .attr("y", margin.top + 45)
+            .attr("class", "legend")
+            .style("stroke", '#f0ad4e')
+            .on("click", function(){
+                var lineStyle = document.getElementById('line_close').style;
+                lineStyle.display = lineStyle.display == 'none' ? 'inline' : 'none';
+            })
+            .text('Close');
+
+        var clip = svg.append("svg:clipPath")
+            .attr("id", "clip")
+            .append("svg:rect")
+            .attr("x", 0)
+            .attr("y", 0)
+            .attr("width", width)
+            .attr("height", height);
+
+        var chartBody = svg.append("g")
+            .attr("clip-path", "url(#clip)");
+
+        chartBody.append("svg:path")
             .datum(data)
-            .attr("fill", "none")
-            .attr("stroke", "steelblue")
-            .attr("stroke-linejoin", "round")
-            .attr("stroke-linecap", "round")
-            .attr("stroke-width", 1.5)
-            .attr("d", line);
+            .attr("id", "line_open")
+            .attr("d", lineO);
+
+        chartBody.append("svg:path")
+            .datum(data)
+            .attr("id", "line_high")
+            .attr("d", lineH);
+
+        chartBody.append("svg:path")
+            .datum(data)
+            .attr("id", "line_low")
+            .attr("d", lineL);
+
+        chartBody.append("svg:path")
+            .datum(data)
+            .attr("id", "line_close")
+            .attr("d", lineC);
+
+        function zoomed() {
+            //console.log(d3.event.translate);
+            //console.log(d3.event.scale);
+            svg.select(".x.axis").call(xAxis);
+            svg.select(".y.axis").call(yAxis);
+            svg.select(".x.grid")
+                .call(make_x_axis()
+                    .tickSize(-height, 0, 0)
+                    .tickFormat(""));
+            svg.select(".y.grid")
+                .call(make_y_axis()
+                    .tickSize(-width, 0, 0)
+                    .tickFormat(""));
+            svg.select("#line_open")
+                .attr("id", "line_open")
+                .attr("d", lineO);
+            svg.select("#line_high")
+                .attr("id", "line_high")
+                .attr("d", lineH);
+            svg.select("#line_low")
+                .attr("id", "line_low")
+                .attr("d", lineL);
+            svg.select("#line_close")
+                .attr("id", "line_close")
+                .attr("d", lineC);
+        }
     });
+
+    function getTimestamp(myDate) {
+        myDate=myDate.split("-");
+        var newDate=myDate[1]+"/"+myDate[2]+"/"+myDate[0];
+        return new Date(newDate).getTime();
+    }
 });
