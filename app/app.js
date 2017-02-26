@@ -113,7 +113,7 @@ stockChart.controller("ChartController", function() {
 
         var lineC = d3.svg.line()
             .x(function (d) { return x(d.date); })
-            .y(function (d) { return chartClose(d.low); });
+            .y(function (d) { return chartClose(d.close); });
 
         var zoom = d3.behavior.zoom()
             .x(x)
@@ -174,6 +174,50 @@ stockChart.controller("ChartController", function() {
                 .tickSize(-width, 0, 0)
                 .tickFormat(""));
 
+        svg.append("text")
+            .attr("x", -100)
+            .attr("y", margin.top)
+            .attr("class", "legend")
+            .style("stroke", '#337ab7')
+            .on("click", function(){
+                var lineStyle = document.getElementById('line_open').style;
+                lineStyle.display = lineStyle.display == 'none' ? 'inline' : 'none';
+            })
+            .text('Open');
+
+        svg.append("text")
+            .attr("x", -100)
+            .attr("y", margin.top + 15)
+            .attr("class", "legend")
+            .style("stroke", '#5cb85c')
+            .on("click", function(){
+                var lineStyle = document.getElementById('line_high').style;
+                lineStyle.display = lineStyle.display == 'none' ? 'inline' : 'none';
+            })
+            .text('High');
+
+        svg.append("text")
+            .attr("x", -100)
+            .attr("y", margin.top + 30)
+            .attr("class", "legend")
+            .style("stroke", '#d9534f')
+            .on("click", function(){
+                var lineStyle = document.getElementById('line_low').style;
+                lineStyle.display = lineStyle.display == 'none' ? 'inline' : 'none';
+            })
+            .text('Low');
+
+        svg.append("text")
+            .attr("x", -100)
+            .attr("y", margin.top + 45)
+            .attr("class", "legend")
+            .style("stroke", '#f0ad4e')
+            .on("click", function(){
+                var lineStyle = document.getElementById('line_close').style;
+                lineStyle.display = lineStyle.display == 'none' ? 'inline' : 'none';
+            })
+            .text('Close');
+
         var clip = svg.append("svg:clipPath")
             .attr("id", "clip")
             .append("svg:rect")
@@ -187,22 +231,22 @@ stockChart.controller("ChartController", function() {
 
         chartBody.append("svg:path")
             .datum(data)
-            .attr("class", "line_open")
+            .attr("id", "line_open")
             .attr("d", lineO);
 
         chartBody.append("svg:path")
             .datum(data)
-            .attr("class", "line_high")
+            .attr("id", "line_high")
             .attr("d", lineH);
 
         chartBody.append("svg:path")
             .datum(data)
-            .attr("class", "line_low")
+            .attr("id", "line_low")
             .attr("d", lineL);
 
         chartBody.append("svg:path")
             .datum(data)
-            .attr("class", "line_close")
+            .attr("id", "line_close")
             .attr("d", lineC);
 
         function zoomed() {
@@ -218,17 +262,17 @@ stockChart.controller("ChartController", function() {
                 .call(make_y_axis()
                     .tickSize(-width, 0, 0)
                     .tickFormat(""));
-            svg.select(".line_open")
-                .attr("class", "line_open")
+            svg.select("#line_open")
+                .attr("id", "line_open")
                 .attr("d", lineO);
-            svg.select(".line_high")
-                .attr("class", "line_high")
+            svg.select("#line_high")
+                .attr("id", "line_high")
                 .attr("d", lineH);
-            svg.select(".line_low")
-                .attr("class", "line_low")
+            svg.select("#line_low")
+                .attr("id", "line_low")
                 .attr("d", lineL);
-            svg.select(".line_close")
-                .attr("class", "line_close")
+            svg.select("#line_close")
+                .attr("id", "line_close")
                 .attr("d", lineC);
         }
     });
