@@ -36,7 +36,10 @@
         <![endif]-->
 
         <div class="starter-template" ng-controller="ChartController">
-            <h3>Yahoo Stock Chart</h3>
+            <input name="updateButton" type="button" value="Set first half 2015" ng-click="parseTsv('stocks_yahoo-2015-I.tsv')" />
+            <input name="updateButton" type="button" value="Set second half 2015" ng-click="parseTsv('stocks_yahoo-2015-II.tsv')" />
+            <input name="updateButton" type="button" value="Set first half 2016" ng-click="parseTsv('stocks_yahoo-2016-I.tsv')" />
+            <input name="updateButton" type="button" value="Set second half 2016" ng-click="parseTsv('stocks_yahoo-2016-II.tsv')" />
             <div id="chart"></div>
         </div>
 
