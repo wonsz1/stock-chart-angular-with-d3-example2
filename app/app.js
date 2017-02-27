@@ -41,245 +41,135 @@ var stockChart = angular.module('myApp', [
     'd3'
 ]);
 
-stockChart.controller("ChartController", function() {
+stockChart.controller("ChartController", function($scope) {
     var d3 = window.d3;
 
-    d3.tsv("stocks_yahoo.tsv", function(d) {
-        d.date = getTimestamp(d.date);
-        d.open = +d.open;
-        d.high = +d.high;
-        d.low = +d.low;
-        d.close = +d.close;
-        return d;
-    }, function(error, data) {
-        if (error) throw error;
+    $scope.parseTsv = function(fileName) {
+        d3.tsv(fileName, function(d) {
+            d.date = getTimestamp(d.date);
+            d.open = +d.open;
+            d.high = +d.high;
+            d.low = +d.low;
+            d.close = +d.close;
+            return d;
+        }, function(error, data) {
+            if (error) throw error;
 
-        var margin = {
-            top: 20,
-            right:20,
-            bottom: 40,
-            left: 145
-        };
-        var width = 800 - margin.left - margin.right;
-        var height = 400 - margin.top - margin.bottom;
+            buildChart(data);
 
-        var x = d3.time.scale()
-            .domain(d3.extent(data, function (d) {
-                return d.date;
-            }))
-            .range([0, width]);
+        });
+    };
 
-        var y = d3.scale.linear()
-            .domain(d3.extent(data, function (d) {
-                return d.open;
-            }))
-            .range([height, 0]);
-
-        var chartOpen = d3.scale.linear()
-            .domain(d3.extent(data, function (d) {
-                return d.open;
-            }))
-            .range([height, 0]);
-
-        var chartHigh = d3.scale.linear()
-            .domain(d3.extent(data, function (d) {
-                return d.high;
-            }))
-            .range([height, 0]);
-
-        var chartLow = d3.scale.linear()
-            .domain(d3.extent(data, function (d) {
-                return d.low;
-            }))
-            .range([height, 0]);
-
-        var chartClose = d3.scale.linear()
-            .domain(d3.extent(data, function (d) {
-                return d.close;
-            }))
-            .range([height, 0]);
-
-        var lineO = d3.svg.line()
-            .x(function (d) { return x(d.date); })
-            .y(function (d) { return chartOpen(d.open); });
-
-        var lineH = d3.svg.line()
-            .x(function (d) { return x(d.date); })
-            .y(function (d) { return chartHigh(d.high); });
-
-        var lineL = d3.svg.line()
-            .x(function (d) { return x(d.date); })
-            .y(function (d) { return chartLow(d.low); });
-
-        var lineC = d3.svg.line()
-            .x(function (d) { return x(d.date); })
-            .y(function (d) { return chartClose(d.close); });
-
-        var zoom = d3.behavior.zoom()
-            .x(x)
-            .y(y)
-            .on("zoom", zoomed);
-
-        var svg = d3.select('#chart')
-            .append("svg:svg")
-            .attr('width', width + margin.left + margin.right)
-            .attr('height', height + margin.top + margin.bottom)
-            .call(zoom)
-            .append("svg:g")
-            .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
-
-        var make_x_axis = function () {
-            return d3.svg.axis()
-                .scale(x)
-                .orient("bottom")
-                .ticks(5);
+    function buildChart(data) {
+        var width = 1000;
+        var height = 400;
+        String.prototype.format = function() {
+            var formatted = this;
+            for (var i = 0; i < arguments.length; i++) {
+                var regexp = new RegExp('\\{'+i+'\\}', 'gi');
+                formatted = formatted.replace(regexp, arguments[i]);
+            }
+            return formatted;
         };
 
-        var make_y_axis = function () {
-            return d3.svg.axis()
-                .scale(y)
-                .orient("left")
-                .ticks(5);
-        };
+        var end = new Date();
+        var start = new Date(end.getTime() - 1000 * 60 * 60 * 24 * 60);
 
-        var xAxis = d3.svg.axis()
-            .scale(x)
-            .orient("bottom")
-            .ticks(5);
+        function min(a, b){ return a < b ? a : b ; }
 
-        svg.append("svg:g")
-            .attr("class", "x axis")
-            .attr("transform", "translate(0, " + height + ")")
-            .call(xAxis);
+        function max(a, b){ return a > b ? a : b; }
 
-        var yAxis = d3.svg.axis()
-            .scale(y)
-            .orient("left")
-            .ticks(5);
+        function drawChart(data){
 
-        svg.append("g")
-            .attr("class", "y axis")
-            .call(yAxis);
+            var margin = 50;
 
-        svg.append("g")
-            .attr("class", "x grid")
-            .attr("transform", "translate(0," + height + ")")
-            .call(make_x_axis()
-                .tickSize(-height, 0, 0)
-                .tickFormat(""));
+            var chart = d3.select("#chart")
+                .html("")
+                .append("svg:svg")
+                .attr("class", "chart")
+                .attr("width", width)
+                .attr("height", height);
 
-        svg.append("g")
-            .attr("class", "y grid")
-            .call(make_y_axis()
-                .tickSize(-width, 0, 0)
-                .tickFormat(""));
+            var y = d3.scale.linear()
+                .domain([d3.min(data.map(function(x) {return x["low"];})), d3.max(data.map(function(x){return x["high"];}))])
+                .range([height-margin, margin]);
+            var x = d3.scale.linear()
+                .domain([d3.min(data.map(function(d){return d.date;})), d3.max(data.map(function(d){ return d.date;}))])
+                .range([margin,width-margin]);
 
-        svg.append("text")
-            .attr("x", -100)
-            .attr("y", margin.top)
-            .attr("class", "legend")
-            .style("stroke", '#337ab7')
-            .on("click", function(){
-                var lineStyle = document.getElementById('line_open').style;
-                lineStyle.display = lineStyle.display == 'none' ? 'inline' : 'none';
-            })
-            .text('Open');
+            chart.selectAll("line.x")
+                .data(x.ticks(12))
+                .enter().append("svg:line")
+                .attr("class", "x")
+                .attr("x1", x)
+                .attr("x2", x)
+                .attr("y1", margin)
+                .attr("y2", height - margin)
+                .attr("stroke", "#ccc");
 
-        svg.append("text")
-            .attr("x", -100)
-            .attr("y", margin.top + 15)
-            .attr("class", "legend")
-            .style("stroke", '#5cb85c')
-            .on("click", function(){
-                var lineStyle = document.getElementById('line_high').style;
-                lineStyle.display = lineStyle.display == 'none' ? 'inline' : 'none';
-            })
-            .text('High');
+            chart.selectAll("line.y")
+                .data(y.ticks(10))
+                .enter().append("svg:line")
+                .attr("class", "y")
+                .attr("x1", margin)
+                .attr("x2", width - margin)
+                .attr("y1", y)
+                .attr("y2", y)
+                .attr("stroke", "#ccc");
 
-        svg.append("text")
-            .attr("x", -100)
-            .attr("y", margin.top + 30)
-            .attr("class", "legend")
-            .style("stroke", '#d9534f')
-            .on("click", function(){
-                var lineStyle = document.getElementById('line_low').style;
-                lineStyle.display = lineStyle.display == 'none' ? 'inline' : 'none';
-            })
-            .text('Low');
+            chart.selectAll("text.xrule")
+                .data(x.ticks(12))
+                .enter().append("svg:text")
+                .attr("class", "xrule")
+                .attr("x", x)
+                .attr("y", height - margin)
+                .attr("dy", 20)
+                .attr("text-anchor", "middle")
+                .text(function(d){
+                    var date = new Date(d);
+                    return ( "0"+(date.getMonth()+1)).slice(-2) + "/" + date.getFullYear();
+                });
 
-        svg.append("text")
-            .attr("x", -100)
-            .attr("y", margin.top + 45)
-            .attr("class", "legend")
-            .style("stroke", '#f0ad4e')
-            .on("click", function(){
-                var lineStyle = document.getElementById('line_close').style;
-                lineStyle.display = lineStyle.display == 'none' ? 'inline' : 'none';
-            })
-            .text('Close');
+            chart.selectAll("text.yrule")
+                .data(y.ticks(10))
+                .enter().append("svg:text")
+                .attr("class", "yrule")
+                .attr("x", width - margin)
+                .attr("y", y)
+                .attr("dy", 0)
+                .attr("dx", 20)
+                .attr("text-anchor", "middle")
+                .text(String);
 
-        var clip = svg.append("svg:clipPath")
-            .attr("id", "clip")
-            .append("svg:rect")
-            .attr("x", 0)
-            .attr("y", 0)
-            .attr("width", width)
-            .attr("height", height);
+            chart.selectAll("rect")
+                .data(data)
+                .enter().append("svg:rect")
+                .attr("x", function(d) { return x(d.date); })
+                .attr("y", function(d) {return y(max(d.open, d.close));})
+                .attr("height", function(d) { return y(min(d.open, d.close))-y(max(d.open, d.close));})
+                .attr("width", function(d) { return 0.5 * (width - 2*margin)/data.length; })
+                .attr("fill",function(d) { return d.open > d.close ? "red" : "green" ;});
 
-        var chartBody = svg.append("g")
-            .attr("clip-path", "url(#clip)");
+            chart.selectAll("line.stem")
+                .data(data)
+                .enter().append("svg:line")
+                .attr("class", "stem")
+                .attr("x1", function(d) { return x(d.date) + 0.25 * (width - 2 * margin)/ data.length;})
+                .attr("x2", function(d) { return x(d.date) + 0.25 * (width - 2 * margin)/ data.length;})
+                .attr("y1", function(d) { return y(d.high);})
+                .attr("y2", function(d) { return y(d.low); })
+                .attr("stroke", function(d){ return d.open > d.close ? "red" : "green"; })
 
-        chartBody.append("svg:path")
-            .datum(data)
-            .attr("id", "line_open")
-            .attr("d", lineO);
-
-        chartBody.append("svg:path")
-            .datum(data)
-            .attr("id", "line_high")
-            .attr("d", lineH);
-
-        chartBody.append("svg:path")
-            .datum(data)
-            .attr("id", "line_low")
-            .attr("d", lineL);
-
-        chartBody.append("svg:path")
-            .datum(data)
-            .attr("id", "line_close")
-            .attr("d", lineC);
-
-        function zoomed() {
-            //console.log(d3.event.translate);
-            //console.log(d3.event.scale);
-            svg.select(".x.axis").call(xAxis);
-            svg.select(".y.axis").call(yAxis);
-            svg.select(".x.grid")
-                .call(make_x_axis()
-                    .tickSize(-height, 0, 0)
-                    .tickFormat(""));
-            svg.select(".y.grid")
-                .call(make_y_axis()
-                    .tickSize(-width, 0, 0)
-                    .tickFormat(""));
-            svg.select("#line_open")
-                .attr("id", "line_open")
-                .attr("d", lineO);
-            svg.select("#line_high")
-                .attr("id", "line_high")
-                .attr("d", lineH);
-            svg.select("#line_low")
-                .attr("id", "line_low")
-                .attr("d", lineL);
-            svg.select("#line_close")
-                .attr("id", "line_close")
-                .attr("d", lineC);
         }
-    });
+
+        drawChart(data);
+    }
 
     function getTimestamp(myDate) {
         myDate=myDate.split("-");
         var newDate=myDate[1]+"/"+myDate[2]+"/"+myDate[0];
         return new Date(newDate).getTime();
     }
+
+    $scope.parseTsv("stocks_yahoo-2015-I.tsv");
 });
