@@ -72,9 +72,6 @@ stockChart.controller("ChartController", function($scope) {
             return formatted;
         };
 
-        var end = new Date();
-        var start = new Date(end.getTime() - 1000 * 60 * 60 * 24 * 60);
-
         function min(a, b){ return a < b ? a : b ; }
 
         function max(a, b){ return a > b ? a : b; }
@@ -96,6 +93,19 @@ stockChart.controller("ChartController", function($scope) {
             var x = d3.scale.linear()
                 .domain([d3.min(data.map(function(d){return d.date;})), d3.max(data.map(function(d){ return d.date;}))])
                 .range([margin,width-margin]);
+
+            var tooltip = d3.select("body")
+                .data(data)
+                .append("div")
+                .style("position", "absolute")
+                .style("z-index", "10")
+                .style("visibility", "hidden")
+                .html(function(d) {
+                    return '<p>Open: ' + d.open + '<br/>' +
+                        'High: ' + d.high + '<br/>' +
+                        'Low: ' + d.low + '<br/>' +
+                        'Close: ' + d.close + '</p>';
+                });
 
             chart.selectAll("line.x")
                 .data(x.ticks(12))
@@ -148,7 +158,10 @@ stockChart.controller("ChartController", function($scope) {
                 .attr("y", function(d) {return y(max(d.open, d.close));})
                 .attr("height", function(d) { return y(min(d.open, d.close))-y(max(d.open, d.close));})
                 .attr("width", function(d) { return 0.5 * (width - 2*margin)/data.length; })
-                .attr("fill",function(d) { return d.open > d.close ? "red" : "green" ;});
+                .attr("fill",function(d) { return d.open > d.close ? "red" : "green" ;})
+                .on("mouseover", function(){return tooltip.style("visibility", "visible");})
+                .on("mousemove", function(){return tooltip.style("top", (d3.event.pageY-10)+"px").style("left",(d3.event.pageX+10)+"px");})
+                .on("mouseout", function(){return tooltip.style("visibility", "hidden");});
 
             chart.selectAll("line.stem")
                 .data(data)
@@ -159,6 +172,9 @@ stockChart.controller("ChartController", function($scope) {
                 .attr("y1", function(d) { return y(d.high);})
                 .attr("y2", function(d) { return y(d.low); })
                 .attr("stroke", function(d){ return d.open > d.close ? "red" : "green"; })
+                .on("mouseover", function(){return tooltip.style("visibility", "visible");})
+                .on("mousemove", function(){return tooltip.style("top", (d3.event.pageY-10)+"px").style("left",(d3.event.pageX+10)+"px");})
+                .on("mouseout", function(){return tooltip.style("visibility", "hidden");});
 
         }
 
