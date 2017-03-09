@@ -82,7 +82,7 @@ stockChart.controller("ChartController", function($scope) {
 
             var margin = 50;
 
-            var chart = d3.select("#chart")
+            var svg = d3.select("#chart")
                 .html("")
                 .append("svg:svg")
                 .attr("class", "chart")
@@ -96,12 +96,9 @@ stockChart.controller("ChartController", function($scope) {
                 .domain([d3.min(data.map(function(d){return d.date;})), d3.max(data.map(function(d){ return d.date;}))])
                 .range([margin,width-margin]);
 
-            var tooltip = d3.select("body")
-                .data(data)
-                .append("div")
-                .style("position", "absolute")
-                .style("z-index", "10")
-                .style("visibility", "hidden")
+            var tip = d3.tip()
+                .attr('class', 'd3-tip')
+                .offset([-10, 0])
                 .html(function(d) {
                     return '<p>Open: ' + d.open + '<br/>' +
                         'High: ' + d.high + '<br/>' +
@@ -109,7 +106,9 @@ stockChart.controller("ChartController", function($scope) {
                         'Close: ' + d.close + '</p>';
                 });
 
-            chart.selectAll("line.x")
+            svg.call(tip);
+
+            svg.selectAll("line.x")
                 .data(x.ticks(12))
                 .enter().append("svg:line")
                 .attr("class", "x")
@@ -119,7 +118,7 @@ stockChart.controller("ChartController", function($scope) {
                 .attr("y2", height - margin)
                 .attr("stroke", "#ccc");
 
-            chart.selectAll("line.y")
+            svg.selectAll("line.y")
                 .data(y.ticks(10))
                 .enter().append("svg:line")
                 .attr("class", "y")
@@ -129,7 +128,7 @@ stockChart.controller("ChartController", function($scope) {
                 .attr("y2", y)
                 .attr("stroke", "#ccc");
 
-            chart.selectAll("text.xrule")
+            svg.selectAll("text.xrule")
                 .data(x.ticks(12))
                 .enter().append("svg:text")
                 .attr("class", "xrule")
@@ -142,7 +141,7 @@ stockChart.controller("ChartController", function($scope) {
                     return ( "0"+(date.getMonth()+1)).slice(-2) + "/" + date.getFullYear();
                 });
 
-            chart.selectAll("text.yrule")
+            svg.selectAll("text.yrule")
                 .data(y.ticks(10))
                 .enter().append("svg:text")
                 .attr("class", "yrule")
@@ -153,7 +152,7 @@ stockChart.controller("ChartController", function($scope) {
                 .attr("text-anchor", "middle")
                 .text(String);
 
-            chart.selectAll("rect")
+            svg.selectAll("rect")
                 .data(data)
                 .enter().append("svg:rect")
                 .attr("x", function(d) { return x(d.date); })
@@ -161,11 +160,10 @@ stockChart.controller("ChartController", function($scope) {
                 .attr("height", function(d) { return y(min(d.open, d.close))-y(max(d.open, d.close));})
                 .attr("width", function(d) { return 0.5 * (width - 2*margin)/data.length; })
                 .attr("fill",function(d) { return d.open > d.close ? "red" : "green" ;})
-                .on("mouseover", function(){return tooltip.style("visibility", "visible");})
-                .on("mousemove", function(){return tooltip.style("top", (d3.event.pageY-10)+"px").style("left",(d3.event.pageX+10)+"px");})
-                .on("mouseout", function(){return tooltip.style("visibility", "hidden");});
+                .on('mouseover', tip.show)
+                .on('mouseout', tip.hide);
 
-            chart.selectAll("line.stem")
+            svg.selectAll("line.stem")
                 .data(data)
                 .enter().append("svg:line")
                 .attr("class", "stem")
@@ -174,9 +172,8 @@ stockChart.controller("ChartController", function($scope) {
                 .attr("y1", function(d) { return y(d.high);})
                 .attr("y2", function(d) { return y(d.low); })
                 .attr("stroke", function(d){ return d.open > d.close ? "red" : "green"; })
-                .on("mouseover", function(){return tooltip.style("visibility", "visible");})
-                .on("mousemove", function(){return tooltip.style("top", (d3.event.pageY-10)+"px").style("left",(d3.event.pageX+10)+"px");})
-                .on("mouseout", function(){return tooltip.style("visibility", "hidden");});
+                .on('mouseover', tip.show)
+                .on('mouseout', tip.hide);
 
         }
 
