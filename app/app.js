@@ -41,11 +41,13 @@ var stockChart = angular.module('myApp', [
     'd3'
 ]);
 
+var data_source_path = 'data_source/';
+
 stockChart.controller("ChartController", function($scope) {
     var d3 = window.d3;
 
     $scope.parseTsv = function(fileName) {
-        d3.tsv(fileName, function(d) {
+        d3.tsv(data_source_path + fileName, function(d) {
             d.date = getTimestamp(d.date);
             d.open = +d.open;
             d.high = +d.high;
