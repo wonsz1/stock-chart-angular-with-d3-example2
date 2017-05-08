@@ -39,3 +39,5 @@ npm start
 
 Now browse to the app at [`localhost:8000/app/index.html`][local-app-url].
 
+![alt Screen of chart](screen.png)
+
